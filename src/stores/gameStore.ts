@@ -218,11 +218,11 @@ export const useGameStore = defineStore('game', () => {
           unlocked = collectedCards.value.length >= parseInt(count)
         }
       } else if (condition === 'characters_all') {
-        const visibleChars = gameConfig.characters.filter(c => !c.hidden)
-        unlocked = visibleChars.filter(c => {
+        const dateableChars = gameConfig.characters.filter(c => !c.hidden || c.unlockCondition)
+        unlocked = dateableChars.every(c => {
           const state = getCharacterState(c.id)
           return state?.unlocked
-        }).length >= visibleChars.length
+        })
       } else if (condition.startsWith('gifts_')) {
         const count = parseInt(condition.replace('gifts_', ''))
         unlocked = gameStats.value.giftsGiven >= count
