@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { TimeOfDay, ActionType, GameEventConfig, EventChoice } from '../types/game'
+import type { TimeOfDay, ActionType, GameEventConfig, EventChoice, AchievementState } from '../types/game'
 import gameConfig from '../config/gameConfig'
 import {
   clamp,
@@ -31,6 +31,12 @@ export interface LogEntry {
   timestamp: number
 }
 
+export interface GameStats {
+  giftsGiven: number
+  workDone: number
+  chatsHad: number
+}
+
 export interface HistorySnapshot {
   day: number
   timeSlot: TimeOfDay
@@ -40,6 +46,8 @@ export interface HistorySnapshot {
   flags: string[]
   triggeredEvents: string[]
   collectedCards: string[]
+  unlockedAchievements: string[]
+  gameStats: GameStats
   logs: LogEntry[]
 }
 
@@ -65,6 +73,12 @@ export const useGameStore = defineStore('game', () => {
   const flags = ref<string[]>([])
   const triggeredEvents = ref<string[]>([])
   const collectedCards = ref<string[]>([])
+  const unlockedAchievements = ref<string[]>([])
+  const gameStats = ref<GameStats>({
+    giftsGiven: 0,
+    workDone: 0,
+    chatsHad: 0
+  })
   const logs = ref<LogEntry[]>([])
   const history = ref<HistorySnapshot[]>([])
   let logIdCounter = 0
@@ -103,6 +117,8 @@ export const useGameStore = defineStore('game', () => {
       flags: [...flags.value],
       triggeredEvents: [...triggeredEvents.value],
       collectedCards: [...collectedCards.value],
+      unlockedAchievements: [...unlockedAchievements.value],
+      gameStats: { ...gameStats.value },
       logs: JSON.parse(JSON.stringify(logs.value))
     })
     if (history.value.length > 100) {
@@ -121,6 +137,8 @@ export const useGameStore = defineStore('game', () => {
     flags.value = [...snapshot.flags]
     triggeredEvents.value = [...snapshot.triggeredEvents]
     collectedCards.value = [...snapshot.collectedCards]
+    unlockedAchievements.value = [...snapshot.unlockedAchievements]
+    gameStats.value = { ...snapshot.gameStats }
     logs.value = JSON.parse(JSON.stringify(snapshot.logs))
     history.value = history.value.slice(0, stepIndex)
     addLog('system', `回退到第 ${snapshot.day} 天 ${getTimeLabel(snapshot.timeSlot)}`)
@@ -148,6 +166,7 @@ export const useGameStore = defineStore('game', () => {
     if (char.affinity >= 100 && oldAffinity < 100) {
       checkCardUnlock(characterId, 100)
     }
+    checkAchievements()
   }
 
   function checkCardUnlock(characterId: string, threshold: number) {
@@ -159,6 +178,78 @@ export const useGameStore = defineStore('game', () => {
       collectedCards.value.push(card.id)
       addLog('system', `🎉 获得新卡牌：${card.name}`, characterId)
     }
+  }
+
+  function unlockAchievement(achievementId: string) {
+    if (unlockedAchievements.value.includes(achievementId)) return
+
+    const achievement = gameConfig.achievements.find(a => a.id === achievementId)
+    if (!achievement) return
+
+    unlockedAchievements.value.push(achievementId)
+    addLog('system', `🏆 解锁成就：${achievement.name}`)
+
+    if (achievement.reward) {
+      if (achievement.reward.type === 'resource' && typeof achievement.reward.value === 'number') {
+        resources.value += achievement.reward.value
+        addLog('system', `🎁 成就奖励：+${achievement.reward.value} 代币`)
+      }
+    }
+  }
+
+  function checkAchievements() {
+    gameConfig.achievements.forEach(achievement => {
+      if (unlockedAchievements.value.includes(achievement.id)) return
+
+      const condition = achievement.unlockCondition
+      let unlocked = false
+
+      if (condition.startsWith('event_')) {
+        const eventId = condition.replace('event_', '')
+        unlocked = triggeredEvents.value.includes(eventId)
+      } else if (condition.startsWith('choice_')) {
+        const choiceId = condition.replace('choice_', '')
+        unlocked = flags.value.includes(choiceId)
+      } else if (condition.startsWith('cards_')) {
+        const count = condition.replace('cards_', '')
+        if (count === 'all') {
+          unlocked = collectedCards.value.length >= gameConfig.cards.length
+        } else {
+          unlocked = collectedCards.value.length >= parseInt(count)
+        }
+      } else if (condition === 'characters_all') {
+        const visibleChars = gameConfig.characters.filter(c => !c.hidden)
+        unlocked = visibleChars.filter(c => {
+          const state = getCharacterState(c.id)
+          return state?.unlocked
+        }).length >= visibleChars.length
+      } else if (condition.startsWith('gifts_')) {
+        const count = parseInt(condition.replace('gifts_', ''))
+        unlocked = gameStats.value.giftsGiven >= count
+      } else if (condition.startsWith('work_')) {
+        const count = parseInt(condition.replace('work_', ''))
+        unlocked = gameStats.value.workDone >= count
+      } else if (condition.includes('_affinity_')) {
+        const parts = condition.split('_affinity_')
+        const charId = parts[0]
+        const threshold = parseInt(parts[1])
+        const charState = getCharacterState(charId)
+        unlocked = charState ? charState.affinity >= threshold : false
+      } else if (condition.startsWith('day_')) {
+        const dayNum = parseInt(condition.replace('day_', ''))
+        unlocked = day.value >= dayNum
+      } else if (condition.startsWith('resources_')) {
+        const amount = parseInt(condition.replace('resources_', ''))
+        unlocked = resources.value >= amount
+      } else if (condition === 'unlock_yeqing') {
+        const yeqing = getCharacterState('yeqing')
+        unlocked = yeqing?.unlocked || false
+      }
+
+      if (unlocked) {
+        unlockAchievement(achievement.id)
+      }
+    })
   }
 
   function updateCharacterMood(characterId: string, change: number) {
@@ -198,6 +289,7 @@ export const useGameStore = defineStore('game', () => {
     })
 
     addLog('system', `🌅 第 ${day.value} 天开始了`)
+    checkAchievements()
   }
 
   function performAction(actionType: ActionType, targetId?: string, giftId?: string) {
@@ -233,6 +325,8 @@ export const useGameStore = defineStore('game', () => {
     const charState = getCharacterState(characterId)
     const charConfig = gameConfig.characters.find(c => c.id === characterId)
     if (!charState || !charConfig || !charState.unlocked) return false
+
+    gameStats.value.chatsHad++
 
     const topic = charConfig.chatTopics[
       randomInt(0, charConfig.chatTopics.length - 1)
@@ -275,6 +369,7 @@ export const useGameStore = defineStore('game', () => {
     }
 
     resources.value -= giftConfig.price
+    gameStats.value.giftsGiven++
 
     const affinityChange = calculateGiftAffinity(
       giftId,
@@ -309,6 +404,7 @@ export const useGameStore = defineStore('game', () => {
     const { min, max } = gameConfig.workRewards
     const earned = randomInt(min, max)
     resources.value += earned
+    gameStats.value.workDone++
 
     characters.value.forEach(char => {
       if (char.unlocked) {
@@ -364,6 +460,10 @@ export const useGameStore = defineStore('game', () => {
   function handleEventChoice(choice: EventChoice) {
     saveHistory()
 
+    if (!flags.value.includes(choice.id)) {
+      flags.value.push(choice.id)
+    }
+
     choice.effects.forEach(effect => {
       if (effect.affinityChange !== undefined) {
         updateCharacterAffinity(effect.characterId, effect.affinityChange)
@@ -405,6 +505,8 @@ export const useGameStore = defineStore('game', () => {
         setTimeout(() => triggerEvent(nextEvent), 300)
       }
     }
+
+    checkAchievements()
   }
 
   function selectCharacter(id: string) {
@@ -437,6 +539,12 @@ export const useGameStore = defineStore('game', () => {
     flags.value = []
     triggeredEvents.value = []
     collectedCards.value = []
+    unlockedAchievements.value = []
+    gameStats.value = {
+      giftsGiven: 0,
+      workDone: 0,
+      chatsHad: 0
+    }
     logs.value = []
     history.value = []
     logIdCounter = 0
@@ -465,6 +573,8 @@ export const useGameStore = defineStore('game', () => {
     flags,
     triggeredEvents,
     collectedCards,
+    unlockedAchievements,
+    gameStats,
     logs,
     history,
     currentEvent,
@@ -482,6 +592,8 @@ export const useGameStore = defineStore('game', () => {
     toggleDarkMode,
     resetGame,
     initGame,
-    checkAndTriggerEvent
+    checkAndTriggerEvent,
+    checkAchievements,
+    unlockAchievement
   }
 })

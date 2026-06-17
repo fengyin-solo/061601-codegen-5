@@ -305,7 +305,185 @@ export const gameConfig: GameConfig = {
     { type: 'work', name: '打工', icon: '💼', description: '辛苦工作赚取代币', energyCost: 2 }
   ],
 
-  workRewards: { min: 15, max: 35 }
+  workRewards: { min: 15, max: 35 },
+
+  achievements: [
+    {
+      id: 'first_meeting',
+      name: '初次邂逅',
+      description: '与林小雨的第一次相遇',
+      icon: '🌸',
+      category: 'choice',
+      rarity: 'common',
+      unlockCondition: 'event_intro_linxiaoyu',
+      reward: { type: 'resource', value: 20 }
+    },
+    {
+      id: 'cafe_lover',
+      name: '咖啡爱好者',
+      description: '第一次走进苏菲的咖啡馆',
+      icon: '☕',
+      category: 'choice',
+      rarity: 'common',
+      unlockCondition: 'event_intro_sufei',
+      reward: { type: 'resource', value: 20 }
+    },
+    {
+      id: 'rainy_knight',
+      name: '雨中骑士',
+      description: '在暴雨中把伞借给林小雨',
+      icon: '☂️',
+      category: 'choice',
+      rarity: 'rare',
+      unlockCondition: 'choice_share_umbrella',
+      reward: { type: 'resource', value: 50 }
+    },
+    {
+      id: 'late_night_helper',
+      name: '深夜助力',
+      description: '深夜在咖啡馆帮助苏菲',
+      icon: '🌙',
+      category: 'choice',
+      rarity: 'rare',
+      unlockCondition: 'choice_help',
+      reward: { type: 'resource', value: 50 }
+    },
+    {
+      id: 'birthday_surprise',
+      name: '生日惊喜',
+      description: '为林小雨准备了一个大惊喜',
+      icon: '🎂',
+      category: 'choice',
+      rarity: 'epic',
+      unlockCondition: 'choice_big_surprise',
+      reward: { type: 'resource', value: 100 }
+    },
+    {
+      id: 'mysterious_encounter',
+      name: '神秘邂逅',
+      description: '发现了神秘的转学生叶青',
+      icon: '🌙',
+      category: 'choice',
+      rarity: 'epic',
+      unlockCondition: 'unlock_yeqing',
+      reward: { type: 'resource', value: 100 }
+    },
+    {
+      id: 'card_collector_bronze',
+      name: '卡牌收集家·铜',
+      description: '收集3张卡牌',
+      icon: '🥉',
+      category: 'collection',
+      rarity: 'common',
+      unlockCondition: 'cards_3'
+    },
+    {
+      id: 'card_collector_silver',
+      name: '卡牌收集家·银',
+      description: '收集6张卡牌',
+      icon: '🥈',
+      category: 'collection',
+      rarity: 'rare',
+      unlockCondition: 'cards_6',
+      reward: { type: 'resource', value: 50 }
+    },
+    {
+      id: 'card_collector_gold',
+      name: '卡牌收集家·金',
+      description: '收集全部卡牌',
+      icon: '🥇',
+      category: 'collection',
+      rarity: 'legendary',
+      unlockCondition: 'cards_all',
+      reward: { type: 'resource', value: 200 }
+    },
+    {
+      id: 'character_unlocker',
+      name: '角色解锁者',
+      description: '解锁所有可攻略角色',
+      icon: '👥',
+      category: 'collection',
+      rarity: 'rare',
+      unlockCondition: 'characters_all',
+      reward: { type: 'resource', value: 80 }
+    },
+    {
+      id: 'gift_master',
+      name: '送礼达人',
+      description: '送出10份礼物',
+      icon: '🎁',
+      category: 'collection',
+      rarity: 'common',
+      unlockCondition: 'gifts_10'
+    },
+    {
+      id: 'hard_worker',
+      name: '勤劳打工人',
+      description: '累计打工20次',
+      icon: '💼',
+      category: 'collection',
+      rarity: 'common',
+      unlockCondition: 'work_20'
+    },
+    {
+      id: 'linxiaoyu_max',
+      name: '小雨的心上人',
+      description: '与林小雨的好感度达到满级',
+      icon: '💖',
+      category: 'ending',
+      rarity: 'legendary',
+      unlockCondition: 'linxiaoyu_affinity_100',
+      reward: { type: 'resource', value: 150 }
+    },
+    {
+      id: 'sufei_max',
+      name: '苏菲的专属客',
+      description: '与苏菲的好感度达到满级',
+      icon: '💕',
+      category: 'ending',
+      rarity: 'legendary',
+      unlockCondition: 'sufei_affinity_100',
+      reward: { type: 'resource', value: 150 }
+    },
+    {
+      id: 'yeqing_truth',
+      name: '叶青的秘密',
+      description: '与叶青成为亲密好友',
+      icon: '🌟',
+      category: 'ending',
+      rarity: 'epic',
+      unlockCondition: 'yeqing_affinity_70',
+      reward: { type: 'resource', value: 100 }
+    },
+    {
+      id: 'week_survivor',
+      name: '一周留念',
+      description: '成功度过7天',
+      icon: '📅',
+      category: 'ending',
+      rarity: 'common',
+      unlockCondition: 'day_7'
+    },
+    {
+      id: 'two_weeks',
+      name: '两周相伴',
+      description: '成功度过14天',
+      icon: '🗓️',
+      category: 'ending',
+      rarity: 'rare',
+      unlockCondition: 'day_14',
+      reward: { type: 'resource', value: 50 }
+    },
+    {
+      id: 'rich_player',
+      name: '小富翁',
+      description: '持有代币超过500',
+      icon: '💰',
+      category: 'ending',
+      rarity: 'rare',
+      unlockCondition: 'resources_500'
+    }
+  ]
 }
 
 export default gameConfig

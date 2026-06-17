@@ -6,6 +6,28 @@ export type ActionType = 'chat' | 'gift' | 'work'
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 
+export type AchievementCategory = 'choice' | 'collection' | 'ending'
+
+export interface AchievementConfig {
+  id: string
+  name: string
+  description: string
+  icon: string
+  category: AchievementCategory
+  rarity: Rarity
+  unlockCondition: string
+  reward?: {
+    type: 'resource' | 'card' | 'title'
+    value: string | number
+  }
+}
+
+export interface AchievementState {
+  id: string
+  unlocked: boolean
+  unlockedAt?: number
+}
+
 export interface CharacterConfig {
   id: string
   name: string
@@ -101,4 +123,5 @@ export interface GameConfig {
   events: GameEventConfig[]
   actions: ActionConfig[]
   workRewards: { min: number; max: number }
+  achievements: AchievementConfig[]
 }
